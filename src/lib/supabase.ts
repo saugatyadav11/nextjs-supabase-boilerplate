@@ -9,9 +9,9 @@ import { createClient } from '@supabase/supabase-js';
  * - NEXT_PUBLIC_SUPABASE_ANON_KEY: Your Supabase project anonymous key
  */
 
-// Hardcoded values for development (these would normally come from environment variables)
-const supabaseUrl = 'https://klshmhrykszuzfdxxelx.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtsc2htaHJ5a3N6dXpmZHh4ZWx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE1OTc0MjYsImV4cCI6MjA1NzE3MzQyNn0.XI-Ez95MCPrJa-68MOgnXkS7ceNG2H4ofyiwOAOJaSo';
+// Use environment variables for Supabase credentials
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 /**
  * Supabase client instance
