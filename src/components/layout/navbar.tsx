@@ -33,6 +33,13 @@ export function Navbar() {
               </Button>
               <Button 
                 asChild 
+                variant={isActive('/todos') ? "default" : "ghost"}
+                className="text-sm"
+              >
+                <Link href="/todos">Todos</Link>
+              </Button>
+              <Button 
+                asChild 
                 variant={isActive('/profile') ? "default" : "ghost"}
                 className="text-sm"
               >

@@ -55,7 +55,7 @@ export default function Home() {
             <Link href="/register">Create Account</Link>
           </Button>
           <Button asChild variant="outline" size="lg">
-            <a href="https://github.com/saugat-rimal/nextjs-supabase-boilerplate" target="_blank" rel="noopener noreferrer">
+            <a href="https://github.com/saugatyadav11/nextjs-supabase-boilerplate" target="_blank" rel="noopener noreferrer">
               View on GitHub
             </a>
           </Button>

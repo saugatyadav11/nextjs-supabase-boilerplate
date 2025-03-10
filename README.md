@@ -68,7 +68,7 @@ A modern, full-featured Next.js boilerplate with Supabase authentication, ShadCN
 1. Clone this repository:
 
 ```bash
-git clone https://github.com/saugat-rimal/nextjs-supabase-boilerplate.git
+git clone https://github.com/saugatyadav11/nextjs-supabase-boilerplate.git
 cd nextjs-supabase-boilerplate
 ```
 
@@ -157,17 +157,144 @@ npx shadcn@latest add dialog
 
 To create a new protected route, add a new page under the `src/app/(protected)` directory. The existing authentication protection in the layout will ensure the user is authenticated before accessing the page.
 
-### Adding Database Functionality
+### Database Functionality
 
-To add database functionality, use the Supabase client in `src/lib/supabase.ts`:
+This boilerplate includes database functionality using Supabase. Here's how to set up and use the database:
+
+#### Setting Up Database Tables
+
+1. Log in to your Supabase project dashboard
+2. Go to the SQL Editor and create your tables. For example:
+
+```sql
+-- Create a profiles table to store user profile information
+CREATE TABLE profiles (
+  id UUID REFERENCES auth.users(id) PRIMARY KEY,
+  username TEXT UNIQUE,
+  full_name TEXT,
+  avatar_url TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create a todos table as an example
+CREATE TABLE todos (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  is_complete BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Set up Row Level Security (RLS)
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE todos ENABLE ROW LEVEL SECURITY;
+
+-- Create policies for secure access
+CREATE POLICY "Users can view their own profile" 
+  ON profiles FOR SELECT 
+  USING (auth.uid() = id);
+
+CREATE POLICY "Users can update their own profile" 
+  ON profiles FOR UPDATE 
+  USING (auth.uid() = id);
+
+CREATE POLICY "Users can view their own todos" 
+  ON todos FOR SELECT 
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own todos" 
+  ON todos FOR INSERT 
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own todos" 
+  ON todos FOR UPDATE 
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own todos" 
+  ON todos FOR DELETE 
+  USING (auth.uid() = user_id);
+```
+
+3. Set up database triggers for maintaining `updated_at` timestamps:
+
+```sql
+-- Function to update the updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger for profiles table
+CREATE TRIGGER update_profiles_updated_at
+BEFORE UPDATE ON profiles
+FOR EACH ROW
+EXECUTE FUNCTION update_updated_at();
+
+-- Trigger for todos table
+CREATE TRIGGER update_todos_updated_at
+BEFORE UPDATE ON todos
+FOR EACH ROW
+EXECUTE FUNCTION update_updated_at();
+```
+
+#### Using the Database in Your Application
+
+Use the Supabase client in `src/lib/supabase.ts` to interact with your database:
 
 ```typescript
 import { supabase } from '@/lib/supabase';
 
 // Query data
 const { data, error } = await supabase
-  .from('your-table')
-  .select('*');
+  .from('todos')
+  .select('*')
+  .eq('user_id', userId);
+
+// Insert data
+const { data, error } = await supabase
+  .from('todos')
+  .insert({ title: 'New Todo', user_id: userId });
+
+// Update data
+const { data, error } = await supabase
+  .from('todos')
+  .update({ is_complete: true })
+  .eq('id', todoId);
+
+// Delete data
+const { error } = await supabase
+  .from('todos')
+  .delete()
+  .eq('id', todoId);
+```
+
+#### Realtime Subscriptions
+
+Supabase provides realtime functionality. Here's how to use it:
+
+```typescript
+// Subscribe to changes in the todos table
+const subscription = supabase
+  .channel('todos_changes')
+  .on('postgres_changes', 
+    { event: '*', schema: 'public', table: 'todos', filter: `user_id=eq.${userId}` },
+    (payload) => {
+      console.log('Change received!', payload);
+      // Update your UI based on the change
+    }
+  )
+  .subscribe();
+
+// Don't forget to unsubscribe when the component unmounts
+return () => {
+  subscription.unsubscribe();
+};
 ```
 
 ### Adding Custom API Routes
